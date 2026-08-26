@@ -7,9 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Placeholder model just so Prisma can generate a client in Phase 1.
-// Real models (User, Organization, etc.) start in Phase 2.
 model HealthCheck {
   id        Int      @id @default(autoincrement())
   checkedAt DateTime @default(now())
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(CUSTOMER)
+  createdAt    DateTime @default(now())
+}
+
+enum Role {
+  CUSTOMER
+  STAFF
 }

@@ -1,9 +1,11 @@
 import { Router } from "express";
 import healthRoutes from "./health.routes";
+import authRoutes from "./auth.routes";
 
 const router = Router();
 
 router.use(healthRoutes);
-// Future route groups (auth, organizations, queues...) will be added here in later phases.
+router.use(authRoutes);
+// Future route groups (organizations, queues...) will be added here in later phases.
 
 export default router;
