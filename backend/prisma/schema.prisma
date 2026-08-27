@@ -20,6 +20,7 @@ model User {
   role          Role           @default(CUSTOMER)
   createdAt     DateTime       @default(now())
   organizations Organization[]
+  queueEntries  QueueEntry[]
 }
 
 enum Role {
@@ -43,5 +44,47 @@ model Service {
   description    String?
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
+  queues         Queue[]
   createdAt      DateTime     @default(now())
+}
+
+model Queue {
+  id        String       @id @default(uuid())
+  name      String
+  serviceId String
+  service   Service      @relation(fields: [serviceId], references: [id])
+  status    QueueStatus  @default(CLOSED)
+  nextToken Int          @default(1)
+  entries   QueueEntry[]
+  createdAt DateTime     @default(now())
+}
+
+enum QueueStatus {
+  OPEN
+  PAUSED
+  CLOSED
+}
+
+model QueueEntry {
+  id          String           @id @default(uuid())
+  queueId     String
+  queue       Queue            @relation(fields: [queueId], references: [id])
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+  tokenNumber Int
+  status      QueueEntryStatus @default(WAITING)
+  joinedAt    DateTime         @default(now())
+  calledAt    DateTime?
+  completedAt DateTime?
+
+  @@unique([queueId, userId, status], name: "one_active_entry_per_user")
+}
+
+enum QueueEntryStatus {
+  WAITING
+  CALLED
+  SERVING
+  COMPLETED
+  SKIPPED
+  CANCELLED
 }
