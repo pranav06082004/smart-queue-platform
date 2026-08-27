@@ -23,4 +23,8 @@ router.post("/queues/:id/next", authenticate, requireRole("STAFF"), queueControl
 router.post("/queues/:id/skip/:entryId", authenticate, requireRole("STAFF"), queueController.skip);
 router.post("/queues/:id/complete/:entryId", authenticate, requireRole("STAFF"), queueController.complete);
 
+router.get("/services/:id/queues", queueController.listByService);
+
+
+
 export default router;

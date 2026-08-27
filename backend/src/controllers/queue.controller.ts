@@ -42,6 +42,15 @@ export async function create(req: Request, res: Response, next: NextFunction) {
   }
 }
 
+export async function listByService(req: Request, res: Response, next: NextFunction) {
+  try {
+    const queues = await listQueuesByService(req.params.id);
+    res.status(200).json({ success: true, data: queues });
+  } catch (error) {
+    handleError(error, res, next);
+  }
+}
+
 export async function status(req: Request, res: Response, next: NextFunction) {
   try {
     const data = await getQueueStatus(req.params.id);
