@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { api } from "../services/api";
 import { saveToken } from "../services/authStorage";
+import { useAuth } from "../context/AuthContext";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { refresh } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -20,6 +22,7 @@ export default function RegisterPage() {
     try {
       const res = await api.post("/auth/register", { email, password, name, role });
       saveToken(res.data.data.token);
+      refresh();
       navigate("/");
     } catch (err: any) {
       setError(err.response?.data?.error?.message ?? "Registration failed.");

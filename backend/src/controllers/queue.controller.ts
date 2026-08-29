@@ -1,4 +1,7 @@
 import { Request, Response, NextFunction } from "express";
+import { emitToQueue } from "../realtime/socket";
+import { QUEUE_UPDATED, TOKEN_CALLED } from "../realtime/events";
+
 import {
   createQueue,
   listQueuesByService,
@@ -9,6 +12,7 @@ import {
   closeQueue,
   QueueError,
 } from "../services/queue.service";
+
 import {
   joinQueue,
   leaveQueue,
@@ -21,12 +25,22 @@ import {
 } from "../services/queueEntry.service";
 import { validateQueueInput } from "../validators/queue.validator";
 
+
 function handleError(error: unknown, res: Response, next: NextFunction) {
   if (error instanceof QueueError || error instanceof QueueEntryError) {
     const status = error.code === "FORBIDDEN" ? 403 : error.code.includes("NOT_FOUND") ? 404 : 400;
     return res.status(status).json({ success: false, error: { code: error.code, message: error.message } });
   }
   next(error);
+}
+
+async function broadcastQueueUpdate(queueId: string) {
+  try {
+    const status = await getQueueStatus(queueId);
+    emitToQueue(queueId, QUEUE_UPDATED, status);
+  } catch {
+    // If the queue was somehow deleted mid-broadcast, just skip silently.
+  }
 }
 
 export async function create(req: Request, res: Response, next: NextFunction) {
@@ -64,6 +78,7 @@ export async function open(req: Request, res: Response, next: NextFunction) {
   try {
     const queue = await openQueue(req.user!.userId, req.params.id);
     res.status(200).json({ success: true, data: queue });
+    await broadcastQueueUpdate(req.params.id);
   } catch (error) {
     handleError(error, res, next);
   }
@@ -100,6 +115,7 @@ export async function join(req: Request, res: Response, next: NextFunction) {
   try {
     const entry = await joinQueue(req.params.id, req.user!.userId);
     res.status(201).json({ success: true, data: entry });
+    await broadcastQueueUpdate(req.params.id);
   } catch (error) {
     handleError(error, res, next);
   }
@@ -109,6 +125,7 @@ export async function leave(req: Request, res: Response, next: NextFunction) {
   try {
     const entry = await leaveQueue(req.body.entryId, req.user!.userId);
     res.status(200).json({ success: true, data: entry });
+    await broadcastQueueUpdate(entry.queueId);
   } catch (error) {
     handleError(error, res, next);
   }
@@ -127,6 +144,8 @@ export async function next(req: Request, res: Response, next: NextFunction) {
   try {
     const entry = await callNext(req.user!.userId, req.params.id);
     res.status(200).json({ success: true, data: entry });
+    emitToQueue(req.params.id, TOKEN_CALLED, entry);
+    await broadcastQueueUpdate(req.params.id);
   } catch (error) {
     handleError(error, res, next);
   }
@@ -136,6 +155,7 @@ export async function skip(req: Request, res: Response, next: NextFunction) {
   try {
     const entry = await skipEntry(req.user!.userId, req.params.id, req.params.entryId);
     res.status(200).json({ success: true, data: entry });
+    await broadcastQueueUpdate(req.params.id);
   } catch (error) {
     handleError(error, res, next);
   }
@@ -145,6 +165,7 @@ export async function complete(req: Request, res: Response, next: NextFunction) 
   try {
     const entry = await completeEntry(req.user!.userId, req.params.id, req.params.entryId);
     res.status(200).json({ success: true, data: entry });
+    await broadcastQueueUpdate(req.params.id);
   } catch (error) {
     handleError(error, res, next);
   }

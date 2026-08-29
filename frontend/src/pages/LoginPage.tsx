@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { api } from "../services/api";
 import { saveToken } from "../services/authStorage";
+import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { refresh } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +20,7 @@ export default function LoginPage() {
     try {
       const res = await api.post("/auth/login", { email, password });
       saveToken(res.data.data.token);
+      refresh();
       navigate("/");
     } catch (err: any) {
       setError(err.response?.data?.error?.message ?? "Login failed.");

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../services/api";
+import { getSocket } from "../services/socket";
 
 type Status = { id: string; name: string; status: string; waitingCount: number; currentToken: number | null };
 type HistoryEntry = { id: string; tokenNumber: number; status: string; user: { name: string } };
@@ -8,26 +9,52 @@ type HistoryEntry = { id: string; tokenNumber: number; status: string; user: { n
 export default function StaffQueueControlPage() {
   const { id } = useParams();
   const [status, setStatus] = useState<Status | null>(null);
-  const [waiting, setWaiting] = useState<any[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [calledEntry, setCalledEntry] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  function load() {
-    api.get(`/queues/${id}/status`).then((res) => setStatus(res.data.data));
+  function loadHistory() {
     api.get(`/queues/${id}/history`).then((res) => setHistory(res.data.data)).catch(() => {});
   }
 
   useEffect(() => {
-    load();
-    const interval = setInterval(load, 5000);
-    return () => clearInterval(interval);
+    if (!id) return;
+
+    // Initial load, same as before — WebSockets don't replace the first fetch.
+    api.get(`/queues/${id}/status`).then((res) => setStatus(res.data.data));
+    loadHistory();
+
+    const socket = getSocket();
+    socket.emit("join-queue", id);
+
+    function handleUpdate(data: Status) {
+      setStatus(data);
+      loadHistory();
+    }
+    function handleTokenCalled(entry: any) {
+      setCalledEntry(entry);
+    }
+
+    socket.on("QUEUE_UPDATED", handleUpdate);
+    socket.on("TOKEN_CALLED", handleTokenCalled);
+
+    // Safety-net backup poll — much slower than Phase 5's, only catches
+    // events missed during a brief disconnect/reconnect.
+    const backupPoll = setInterval(() => {
+      api.get(`/queues/${id}/status`).then((res) => setStatus(res.data.data));
+    }, 30000);
+
+    return () => {
+      socket.emit("leave-queue", id);
+      socket.off("QUEUE_UPDATED", handleUpdate);
+      socket.off("TOKEN_CALLED", handleTokenCalled);
+      clearInterval(backupPoll);
+    };
   }, [id]);
 
   async function handleAction(action: "open" | "pause" | "resume" | "close") {
     try {
       await api.patch(`/queues/${id}/${action}`);
-      load();
     } catch (err: any) {
       setError(err.response?.data?.error?.message ?? "Action failed.");
     }
@@ -38,7 +65,6 @@ export default function StaffQueueControlPage() {
     try {
       const res = await api.post(`/queues/${id}/next`);
       setCalledEntry(res.data.data);
-      load();
     } catch (err: any) {
       setError(err.response?.data?.error?.message ?? "No one is waiting.");
     }
@@ -49,7 +75,6 @@ export default function StaffQueueControlPage() {
     try {
       await api.post(`/queues/${id}/complete/${calledEntry.id}`);
       setCalledEntry(null);
-      load();
     } catch (err: any) {
       setError(err.response?.data?.error?.message ?? "Failed to complete.");
     }
@@ -60,7 +85,6 @@ export default function StaffQueueControlPage() {
     try {
       await api.post(`/queues/${id}/skip/${calledEntry.id}`);
       setCalledEntry(null);
-      load();
     } catch (err: any) {
       setError(err.response?.data?.error?.message ?? "Failed to skip.");
     }

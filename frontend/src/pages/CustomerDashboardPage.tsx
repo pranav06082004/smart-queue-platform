@@ -1,29 +1,65 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../services/api";
+import { getSocket } from "../services/socket";
 
 type Entry = {
   id: string;
   tokenNumber: string | number;
   status: string;
-  queue: { name: string; service: { name: string; organization: { name: string } } };
+  queue: { id: string; name: string; service: { name: string; organization: { name: string } } };
 };
 
 export default function CustomerDashboardPage() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const joinedRoomsRef = useRef<Set<string>>(new Set());
 
   function load() {
     api
       .get("/my/queue-entries")
-      .then((res) => setEntries(res.data.data))
+      .then((res) => {
+        const data: Entry[] = res.data.data;
+        setEntries(data);
+
+        // Join a room for every queue we're currently active in.
+        const socket = getSocket();
+        for (const entry of data) {
+          const queueId = entry.queue.id;
+          if (!joinedRoomsRef.current.has(queueId)) {
+            socket.emit("join-queue", queueId);
+            joinedRoomsRef.current.add(queueId);
+          }
+        }
+      })
       .catch(() => setError("Could not load your queue entries."));
   }
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 5000); // simple polling, real-time comes in Phase 6
-    return () => clearInterval(interval);
+
+    const socket = getSocket();
+
+    function handleUpdate() {
+      // Something changed in a queue we're watching — refetch our entries.
+      load();
+    }
+
+    socket.on("QUEUE_UPDATED", handleUpdate);
+    socket.on("TOKEN_CALLED", handleUpdate);
+
+    // Slow backup poll — safety net only.
+    const backupPoll = setInterval(load, 30000);
+
+    return () => {
+      socket.off("QUEUE_UPDATED", handleUpdate);
+      socket.off("TOKEN_CALLED", handleUpdate);
+      for (const queueId of joinedRoomsRef.current) {
+        socket.emit("leave-queue", queueId);
+      }
+      joinedRoomsRef.current.clear();
+      clearInterval(backupPoll);
+    };
   }, []);
 
   return (
