@@ -1,5 +1,6 @@
 import { prisma } from "../config/prisma";
 import { QueueError, getQueueWithOwnerOrThrow, assertOwnership } from "./queueOwnership.service";
+import { invalidateQueueStatusCache } from "./queue.service";
 
 export class QueueEntryError extends Error {
   constructor(public code: string, message: string) {
@@ -30,10 +31,10 @@ export async function joinQueue(queueId: string, userId: string) {
     });
     const assignedToken = updatedQueue.nextToken - 1;
 
-    const entry = await tx.queueEntry.create({
+      const entry = await tx.queueEntry.create({
       data: { queueId, userId, tokenNumber: assignedToken, status: "WAITING" },
     });
-
+    await invalidateQueueStatusCache(queueId);
     return entry;
   });
 }
@@ -50,10 +51,14 @@ export async function leaveQueue(entryId: string, userId: string) {
     throw new QueueEntryError("INVALID_STATE", "Only a waiting entry can be cancelled.");
   }
 
-  return prisma.queueEntry.update({
+  const updated = await prisma.queueEntry.update({
     where: { id: entryId },
     data: { status: "CANCELLED" },
   });
+
+  await invalidateQueueStatusCache(entry.queueId);
+
+  return updated;
 }
 
 export async function getMyPosition(queueId: string, userId: string) {
@@ -79,7 +84,7 @@ export async function callNext(requesterId: string, queueId: string) {
   const queue = await getQueueWithOwnerOrThrow(queueId);
   assertOwnership(queue, requesterId);
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const next = await tx.queueEntry.findFirst({
       where: { queueId, status: "WAITING" },
       orderBy: { tokenNumber: "asc" },
@@ -93,6 +98,10 @@ export async function callNext(requesterId: string, queueId: string) {
       data: { status: "CALLED", calledAt: new Date() },
     });
   });
+
+  await invalidateQueueStatusCache(queueId);
+
+  return result;
 }
 
 export async function skipEntry(requesterId: string, queueId: string, entryId: string) {
@@ -104,7 +113,11 @@ export async function skipEntry(requesterId: string, queueId: string, entryId: s
     throw new QueueEntryError("ENTRY_NOT_FOUND", "Queue entry not found in this queue.");
   }
 
-  return prisma.queueEntry.update({ where: { id: entryId }, data: { status: "SKIPPED" } });
+  const updated = await prisma.queueEntry.update({ where: { id: entryId }, data: { status: "SKIPPED" } });
+
+  await invalidateQueueStatusCache(queueId);
+
+  return updated;
 }
 
 export async function completeEntry(requesterId: string, queueId: string, entryId: string) {
@@ -116,10 +129,14 @@ export async function completeEntry(requesterId: string, queueId: string, entryI
     throw new QueueEntryError("ENTRY_NOT_FOUND", "Queue entry not found in this queue.");
   }
 
-  return prisma.queueEntry.update({
+  const updated = await prisma.queueEntry.update({
     where: { id: entryId },
     data: { status: "COMPLETED", completedAt: new Date() },
   });
+
+  await invalidateQueueStatusCache(queueId);
+
+  return updated;
 }
 
 export async function getQueueHistory(queueId: string) {

@@ -1,5 +1,7 @@
+import { getCached, setCache, invalidateCache } from "../utils/cache";
 import { prisma } from "../config/prisma";
 import { QueueError, getQueueWithOwnerOrThrow, assertOwnership } from "./queueOwnership.service";
+
 
 export { QueueError };
 
@@ -22,7 +24,24 @@ export async function listQueuesByService(serviceId: string) {
   return prisma.queue.findMany({ where: { serviceId }, orderBy: { createdAt: "desc" } });
 }
 
-export async function getQueueStatus(queueId: string) {
+export async function getQueueStatus(queueId: string): Promise<{
+  id: string;
+  name: string;
+  status: string;
+  waitingCount: number;
+  currentToken: number | null;
+  _cacheHit?: boolean; // internal flag, stripped before sending to client — see controller
+}> {
+  const cacheKey = `queue:status:${queueId}`;
+
+  const cached = await getCached<{
+    id: string; name: string; status: string; waitingCount: number; currentToken: number | null;
+  }>(cacheKey);
+
+  if (cached) {
+    return { ...cached, _cacheHit: true };
+  }
+
   const queue = await prisma.queue.findUnique({
     where: { id: queueId },
     include: {
@@ -38,22 +57,31 @@ export async function getQueueStatus(queueId: string) {
     orderBy: { calledAt: "desc" },
   });
 
-  return {
+  const result = {
     id: queue.id,
     name: queue.name,
     status: queue.status,
     waitingCount: queue.entries.length,
     currentToken: currentlyServing?.tokenNumber ?? null,
   };
+
+  await setCache(cacheKey, result);
+
+  return { ...result, _cacheHit: false };
 }
 
 async function setStatus(requesterId: string, queueId: string, status: "OPEN" | "PAUSED" | "CLOSED") {
   const queue = await getQueueWithOwnerOrThrow(queueId);
   assertOwnership(queue, requesterId);
 
-  return prisma.queue.update({ where: { id: queueId }, data: { status } });
+  const updated = await prisma.queue.update({ where: { id: queueId }, data: { status } });
+  await invalidateQueueStatusCache(queueId); // ADD THIS
+  return updated;
 }
 
+export async function invalidateQueueStatusCache(queueId: string) {
+  await invalidateCache(`queue:status:${queueId}`);
+}
 export const openQueue = (requesterId: string, queueId: string) => setStatus(requesterId, queueId, "OPEN");
 export const pauseQueue = (requesterId: string, queueId: string) => setStatus(requesterId, queueId, "PAUSED");
 export const resumeQueue = (requesterId: string, queueId: string) => setStatus(requesterId, queueId, "OPEN");

@@ -68,7 +68,9 @@ export async function listByService(req: Request, res: Response, next: NextFunct
 export async function status(req: Request, res: Response, next: NextFunction) {
   try {
     const data = await getQueueStatus(req.params.id);
-    res.status(200).json({ success: true, data });
+    const { _cacheHit, ...clean } = data;
+    res.setHeader("X-Cache", _cacheHit ? "HIT" : "MISS");
+    res.status(200).json({ success: true, data: clean });
   } catch (error) {
     handleError(error, res, next);
   }

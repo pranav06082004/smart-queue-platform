@@ -6,6 +6,7 @@ export const env = {
   port: process.env.PORT ? parseInt(process.env.PORT, 10) : 4000,
   databaseUrl: process.env.DATABASE_URL ?? "",
   jwtSecret: process.env.JWT_SECRET ?? "",
+  redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379",
 };
 
 if (!env.databaseUrl) {
