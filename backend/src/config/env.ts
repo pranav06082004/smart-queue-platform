@@ -7,6 +7,7 @@ export const env = {
   databaseUrl: process.env.DATABASE_URL ?? "",
   jwtSecret: process.env.JWT_SECRET ?? "",
   redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379",
+  rabbitmqUrl: process.env.RABBITMQ_URL ?? "amqp://guest:guest@localhost:5672",
 };
 
 if (!env.databaseUrl) {

@@ -1,6 +1,8 @@
 import { prisma } from "../config/prisma";
 import { QueueError, getQueueWithOwnerOrThrow, assertOwnership } from "./queueOwnership.service";
 import { invalidateQueueStatusCache } from "./queue.service";
+import { publishEvent } from "../messaging/producer";
+import { QUEUE_ENTRY_COMPLETED, QUEUE_ENTRY_SKIPPED } from "../messaging/events";
 
 export class QueueEntryError extends Error {
   constructor(public code: string, message: string) {
@@ -116,6 +118,12 @@ export async function skipEntry(requesterId: string, queueId: string, entryId: s
   const updated = await prisma.queueEntry.update({ where: { id: entryId }, data: { status: "SKIPPED" } });
 
   await invalidateQueueStatusCache(queueId);
+  await publishEvent(QUEUE_ENTRY_SKIPPED, {
+    entryId: updated.id,
+    queueId,
+    userId: updated.userId,
+    tokenNumber: updated.tokenNumber,
+  });
 
   return updated;
 }
@@ -135,6 +143,12 @@ export async function completeEntry(requesterId: string, queueId: string, entryI
   });
 
   await invalidateQueueStatusCache(queueId);
+  await publishEvent(QUEUE_ENTRY_COMPLETED, {
+    entryId: updated.id,
+    queueId,
+    userId: updated.userId,
+    tokenNumber: updated.tokenNumber,
+  });
 
   return updated;
 }
