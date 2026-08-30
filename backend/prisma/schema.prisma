@@ -21,6 +21,7 @@ model User {
   createdAt     DateTime       @default(now())
   organizations Organization[]
   queueEntries  QueueEntry[]
+  notifications Notification[]
 }
 
 enum Role {
@@ -85,4 +86,14 @@ enum QueueEntryStatus {
   COMPLETED
   SKIPPED
   CANCELLED
+}
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  message   String
+  dedupeKey String   @unique
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

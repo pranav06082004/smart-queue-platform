@@ -1,6 +1,8 @@
 import { getCached, setCache, invalidateCache } from "../utils/cache";
 import { prisma } from "../config/prisma";
 import { QueueError, getQueueWithOwnerOrThrow, assertOwnership } from "./queueOwnership.service";
+import { publishEvent } from "../messaging/producer";
+import { QUEUE_STATUS_CHANGED } from "../messaging/events";
 
 
 export { QueueError };
@@ -75,7 +77,22 @@ async function setStatus(requesterId: string, queueId: string, status: "OPEN" | 
   assertOwnership(queue, requesterId);
 
   const updated = await prisma.queue.update({ where: { id: queueId }, data: { status } });
-  await invalidateQueueStatusCache(queueId); // ADD THIS
+  await invalidateQueueStatusCache(queueId);
+
+  // Notify everyone currently WAITING in this queue about the status change.
+  const waitingUsers = await prisma.queueEntry.findMany({
+    where: { queueId, status: "WAITING" },
+    select: { userId: true, id: true },
+  });
+  for (const entry of waitingUsers) {
+    await publishEvent(QUEUE_STATUS_CHANGED, {
+      entryId: entry.id,
+      queueId,
+      userId: entry.userId,
+      newStatus: status,
+    });
+  }
+
   return updated;
 }
 

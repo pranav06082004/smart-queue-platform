@@ -5,6 +5,7 @@ import organizationRoutes from "./organization.routes";
 import serviceRoutes from "./service.routes";
 import queueRoutes from "./queue.routes";
 import meRoutes from "./me.routes";
+import notificationRoutes from "./notification.routes";
 
 const router = Router();
 
@@ -14,5 +15,6 @@ router.use(organizationRoutes);
 router.use(serviceRoutes);
 router.use(queueRoutes);
 router.use(meRoutes);
+router.use(notificationRoutes);
 
 export default router;

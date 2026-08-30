@@ -2,7 +2,7 @@ import { prisma } from "../config/prisma";
 import { QueueError, getQueueWithOwnerOrThrow, assertOwnership } from "./queueOwnership.service";
 import { invalidateQueueStatusCache } from "./queue.service";
 import { publishEvent } from "../messaging/producer";
-import { QUEUE_ENTRY_COMPLETED, QUEUE_ENTRY_SKIPPED } from "../messaging/events";
+import { QUEUE_ENTRY_COMPLETED, QUEUE_ENTRY_SKIPPED, QUEUE_ENTRY_JOINED, QUEUE_ENTRY_CALLED,QUEUE_ENTRY_TURN_APPROACHING } from "../messaging/events";
 
 export class QueueEntryError extends Error {
   constructor(public code: string, message: string) {
@@ -37,6 +37,13 @@ export async function joinQueue(queueId: string, userId: string) {
       data: { queueId, userId, tokenNumber: assignedToken, status: "WAITING" },
     });
     await invalidateQueueStatusCache(queueId);
+
+    await publishEvent(QUEUE_ENTRY_JOINED, {
+    entryId: entry.id,
+    queueId,
+    userId: entry.userId,
+    tokenNumber: entry.tokenNumber,
+  });
     return entry;
   });
 }
@@ -102,6 +109,31 @@ export async function callNext(requesterId: string, queueId: string) {
   });
 
   await invalidateQueueStatusCache(queueId);
+
+  await publishEvent(QUEUE_ENTRY_CALLED, {
+    entryId: result.id,
+    queueId,
+    userId: result.userId,
+    tokenNumber: result.tokenNumber,
+  });
+
+  // Simple rule-based "turn approaching" check: anyone now 2nd or 3rd in line
+  // (i.e., the next 2 WAITING entries after this call) gets notified.
+  // Phase 11 can later replace this fixed threshold with an AI-predicted wait time.
+  const upcoming = await prisma.queueEntry.findMany({
+    where: { queueId, status: "WAITING" },
+    orderBy: { tokenNumber: "asc" },
+    take: 2,
+  });
+
+  for (const entry of upcoming) {
+    await publishEvent(QUEUE_ENTRY_TURN_APPROACHING, {
+      entryId: entry.id,
+      queueId,
+      userId: entry.userId,
+      tokenNumber: entry.tokenNumber,
+    });
+  }
 
   return result;
 }
