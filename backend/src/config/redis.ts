@@ -1,16 +1,28 @@
 import Redis from "ioredis";
 import { env } from "./env";
 
-export const redis = new Redis(env.redisUrl, {
-  maxRetriesPerRequest: 1,
-  retryStrategy: () => null, // don't keep retrying forever — fail fast, let cache.ts handle it gracefully
-  lazyConnect: false,
-});
+function createRedisConnection(label: string) {
+  const client = new Redis(env.redisUrl, {
+    maxRetriesPerRequest: 1,
+    retryStrategy: () => null,
+    lazyConnect: false,
+  });
 
-redis.on("error", (err) => {
-  console.warn("[redis] connection error (caching disabled for this request):", err.message);
-});
+  client.on("error", (err) => {
+    console.warn(`[redis:${label}] connection error:`, err.message);
+  });
 
-redis.on("connect", () => {
-  console.log("[redis] connected");
-});
+  client.on("connect", () => {
+    console.log(`[redis:${label}] connected`);
+  });
+
+  return client;
+}
+
+// Used for GET/SET/DEL caching (Phase 7).
+export const redis = createRedisConnection("cache");
+
+// Dedicated connections for Pub/Sub — cannot be shared with the caching client,
+// since a connection that calls SUBSCRIBE can no longer run normal commands.
+export const redisPublisher = createRedisConnection("publisher");
+export const redisSubscriber = createRedisConnection("subscriber");
