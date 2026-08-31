@@ -4,3 +4,6 @@ dist/
 !.env.example
 *.log
 generated/
+ai-service/venv/
+ai-service/**/__pycache__/
+ai-service/predict-test.json

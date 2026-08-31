@@ -3,7 +3,7 @@ import { prisma } from "../config/prisma";
 import { QueueError, getQueueWithOwnerOrThrow, assertOwnership } from "./queueOwnership.service";
 import { publishEvent } from "../messaging/producer";
 import { QUEUE_STATUS_CHANGED } from "../messaging/events";
-
+import { getWaitTimeEstimate } from "./aiClient.service";
 
 export { QueueError };
 
@@ -32,12 +32,15 @@ export async function getQueueStatus(queueId: string): Promise<{
   status: string;
   waitingCount: number;
   currentToken: number | null;
+  estimatedWaitMinutes?: number;
+  waitEstimateSource?: "ai" | "fallback";
   _cacheHit?: boolean; // internal flag, stripped before sending to client — see controller
 }> {
   const cacheKey = `queue:status:${queueId}`;
 
   const cached = await getCached<{
     id: string; name: string; status: string; waitingCount: number; currentToken: number | null;
+    estimatedWaitMinutes?: number; waitEstimateSource?: "ai" | "fallback";
   }>(cacheKey);
 
   if (cached) {
@@ -67,9 +70,23 @@ export async function getQueueStatus(queueId: string): Promise<{
     currentToken: currentlyServing?.tokenNumber ?? null,
   };
 
-  await setCache(cacheKey, result);
+  const activeCounters = 1; // simplification for now — real "counters" concept not modeled yet
+  const waitEstimate = await getWaitTimeEstimate({
+    queueId,
+    peopleAhead: result.waitingCount,
+    activeCounters,
+    serviceType: "general", // simplification — Service isn't structured into a "type" yet
+  });
 
-  return { ...result, _cacheHit: false };
+  const finalResult = {
+    ...result,
+    estimatedWaitMinutes: waitEstimate.predictedWaitMinutes,
+    waitEstimateSource: waitEstimate.source,
+  };
+
+  await setCache(cacheKey, finalResult);
+
+  return { ...finalResult, _cacheHit: false };
 }
 
 async function setStatus(requesterId: string, queueId: string, status: "OPEN" | "PAUSED" | "CLOSED") {
@@ -99,6 +116,7 @@ async function setStatus(requesterId: string, queueId: string, status: "OPEN" | 
 export async function invalidateQueueStatusCache(queueId: string) {
   await invalidateCache(`queue:status:${queueId}`);
 }
+
 export const openQueue = (requesterId: string, queueId: string) => setStatus(requesterId, queueId, "OPEN");
 export const pauseQueue = (requesterId: string, queueId: string) => setStatus(requesterId, queueId, "PAUSED");
 export const resumeQueue = (requesterId: string, queueId: string) => setStatus(requesterId, queueId, "OPEN");
