@@ -6,6 +6,7 @@ import serviceRoutes from "./service.routes";
 import queueRoutes from "./queue.routes";
 import meRoutes from "./me.routes";
 import notificationRoutes from "./notification.routes";
+import analyticsRoutes from "./analytics.routes";
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use(serviceRoutes);
 router.use(queueRoutes);
 router.use(meRoutes);
 router.use(notificationRoutes);
+router.use(analyticsRoutes);
 
 export default router;

@@ -47,3 +47,32 @@ export async function getWaitTimeEstimate(params: {
     };
   }
 }
+
+type DemandLevel = "LOW" | "MEDIUM" | "HIGH" | "VERY_HIGH";
+
+export async function getDemandForecast(params: {
+  timeOfDay: number;
+  dayOfWeek: number;
+  serviceType: string;
+}): Promise<{ demandLevel: DemandLevel; source: "ai" | "fallback" }> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500);
+
+    const res = await fetch(`${env.aiServiceUrl}/predict/demand`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) throw new Error(`AI service returned ${res.status}`);
+    const data = await res.json();
+    return { demandLevel: data.demandLevel, source: "ai" };
+  } catch (err) {
+    console.warn("[ai] demand prediction failed, using fallback:", (err as Error).message);
+    // Simple fallback: assume MEDIUM demand if AI is unavailable — never block the dashboard.
+    return { demandLevel: "MEDIUM", source: "fallback" };
+  }
+}

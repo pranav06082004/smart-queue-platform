@@ -12,6 +12,7 @@ import StaffManageServicesPage from "./pages/StaffManageServicesPage";
 import CustomerDashboardPage from "./pages/CustomerDashboardPage";
 import StaffDashboardPage from "./pages/StaffDashboardPage";
 import StaffQueueControlPage from "./pages/StaffQueueControlPage";
+import StaffAnalyticsPage from "./pages/StaffAnalyticsPage";
 
 function App() {
   return (
@@ -63,6 +64,14 @@ function App() {
             element={
               <ProtectedRoute role="STAFF">
                 <StaffQueueControlPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/staff/queues/:id/analytics"
+            element={
+              <ProtectedRoute role="STAFF">
+                <StaffAnalyticsPage />
               </ProtectedRoute>
             }
           />
