@@ -7,6 +7,7 @@ import queueRoutes from "./queue.routes";
 import meRoutes from "./me.routes";
 import notificationRoutes from "./notification.routes";
 import analyticsRoutes from "./analytics.routes";
+import recommendationRoutes from "./recommendation.routes";
 
 const router = Router();
 

@@ -33,6 +33,8 @@ model Organization {
   id          String    @id @default(uuid())
   name        String
   description String?
+  latitude    Float?
+  longitude   Float?
   ownerId     String
   owner       User      @relation(fields: [ownerId], references: [id])
   services    Service[]

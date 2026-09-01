@@ -13,18 +13,29 @@ import CustomerDashboardPage from "./pages/CustomerDashboardPage";
 import StaffDashboardPage from "./pages/StaffDashboardPage";
 import StaffQueueControlPage from "./pages/StaffQueueControlPage";
 import StaffAnalyticsPage from "./pages/StaffAnalyticsPage";
+import RecommendationSearchPage from "./pages/RecommendationSearchPage";
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Navbar />
+
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/organizations" element={<OrganizationsListPage />} />
-          <Route path="/organizations/:id" element={<OrganizationDetailPage />} />
+          <Route
+            path="/organizations/:id"
+            element={<OrganizationDetailPage />}
+          />
+
+          {/* Recommendation Search */}
+          <Route
+            path="/recommendations"
+            element={<RecommendationSearchPage />}
+          />
 
           <Route
             path="/dashboard"
@@ -43,6 +54,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/staff/create-organization"
             element={
@@ -51,6 +63,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/staff/organizations/:id/services"
             element={
@@ -59,6 +72,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/staff/queues/:id"
             element={
@@ -67,6 +81,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/staff/queues/:id/analytics"
             element={
