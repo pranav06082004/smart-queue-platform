@@ -8,6 +8,7 @@ import meRoutes from "./me.routes";
 import notificationRoutes from "./notification.routes";
 import analyticsRoutes from "./analytics.routes";
 import recommendationRoutes from "./recommendation.routes";
+import nlSearchRoutes from "./nlSearch.routes";
 
 const router = Router();
 
@@ -19,5 +20,6 @@ router.use(queueRoutes);
 router.use(meRoutes);
 router.use(notificationRoutes);
 router.use(analyticsRoutes);
+router.use(recommendationRoutes);
 
 export default router;

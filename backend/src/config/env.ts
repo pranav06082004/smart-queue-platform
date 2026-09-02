@@ -9,6 +9,9 @@ export const env = {
   redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379",
   rabbitmqUrl: process.env.RABBITMQ_URL ?? "amqp://guest:guest@localhost:5672",
   aiServiceUrl: process.env.AI_SERVICE_URL ?? "http://localhost:8000",
+  llmApiKey: process.env.LLM_API_KEY ?? "",
+  llmApiUrl: process.env.LLM_API_URL ?? "https://api.groq.com/openai/v1/chat/completions",
+  llmModel: process.env.LLM_MODEL ?? "llama-3.1-8b-instant",
 };
 
 if (!env.databaseUrl) {

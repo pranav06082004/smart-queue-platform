@@ -27,6 +27,14 @@ export default function Navbar() {
           Find Best Queue
         </Link>
 
+        {/* Ask AI */}
+        <Link
+          to="/ask"
+          className="text-slate-600 hover:text-slate-900"
+        >
+          Ask AI
+        </Link>
+
         {!user && (
           <>
             <Link
@@ -80,4 +88,3 @@ export default function Navbar() {
     </nav>
   );
 }
-
