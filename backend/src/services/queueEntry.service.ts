@@ -11,41 +11,54 @@ export class QueueEntryError extends Error {
 }
 
 export async function joinQueue(queueId: string, userId: string) {
-  return prisma.$transaction(async (tx) => {
-    const queue = await tx.queue.findUnique({ where: { id: queueId } });
-    if (!queue) {
-      throw new QueueError("QUEUE_NOT_FOUND", "Queue not found.");
-    }
-    if (queue.status !== "OPEN") {
-      throw new QueueEntryError("QUEUE_NOT_OPEN", "This queue is not currently open.");
-    }
+  try {
+    const entry = await prisma.$transaction(async (tx) => {
+      const queue = await tx.queue.findUnique({ where: { id: queueId } });
+      if (!queue) {
+        throw new QueueError("QUEUE_NOT_FOUND", "Queue not found.");
+      }
+      if (queue.status !== "OPEN") {
+        throw new QueueEntryError("QUEUE_NOT_OPEN", "This queue is not currently open.");
+      }
 
-    const existingActive = await tx.queueEntry.findFirst({
-      where: { queueId, userId, status: "WAITING" },
+      // Application-level check stays — gives a fast, friendly error in the common case.
+      const existingActive = await tx.queueEntry.findFirst({
+        where: { queueId, userId, status: "WAITING" },
+      });
+      if (existingActive) {
+        throw new QueueEntryError("ALREADY_IN_QUEUE", "You already have an active entry in this queue.");
+      }
+
+      const updatedQueue = await tx.queue.update({
+        where: { id: queueId },
+        data: { nextToken: { increment: 1 } },
+      });
+      const assignedToken = updatedQueue.nextToken - 1;
+
+      const newEntry = await tx.queueEntry.create({
+        data: { queueId, userId, tokenNumber: assignedToken, status: "WAITING" },
+      });
+
+      return newEntry;
     });
-    if (existingActive) {
+
+    await invalidateQueueStatusCache(queueId);
+    await publishEvent(QUEUE_ENTRY_JOINED, {
+      entryId: entry.id, queueId, userId: entry.userId, tokenNumber: entry.tokenNumber,
+    });
+
+    return entry;
+  } catch (err: any) {
+    // The REAL guarantee: even if the app-level check above somehow raced
+    // (two requests both passing the findFirst check before either commits),
+    // the database's partial unique index makes a true double-WAITING-entry
+    // physically impossible — this catch converts that DB-level rejection
+    // into the same friendly error, rather than a raw 500.
+    if (err?.code === "P2002") {
       throw new QueueEntryError("ALREADY_IN_QUEUE", "You already have an active entry in this queue.");
     }
-
-    const updatedQueue = await tx.queue.update({
-      where: { id: queueId },
-      data: { nextToken: { increment: 1 } },
-    });
-    const assignedToken = updatedQueue.nextToken - 1;
-
-      const entry = await tx.queueEntry.create({
-      data: { queueId, userId, tokenNumber: assignedToken, status: "WAITING" },
-    });
-    await invalidateQueueStatusCache(queueId);
-
-    await publishEvent(QUEUE_ENTRY_JOINED, {
-    entryId: entry.id,
-    queueId,
-    userId: entry.userId,
-    tokenNumber: entry.tokenNumber,
-  });
-    return entry;
-  });
+    throw err;
+  }
 }
 
 export async function leaveQueue(entryId: string, userId: string) {

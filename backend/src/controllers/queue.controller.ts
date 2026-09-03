@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { emitToQueue } from "../realtime/socket";
 import { QUEUE_UPDATED, TOKEN_CALLED } from "../realtime/events";
+import { saveIdempotentResponse } from "../middleware/idempotency";
 
 import {
   createQueue,
@@ -116,7 +117,9 @@ export async function close(req: Request, res: Response, next: NextFunction) {
 export async function join(req: Request, res: Response, next: NextFunction) {
   try {
     const entry = await joinQueue(req.params.id, req.user!.userId);
-    res.status(201).json({ success: true, data: entry });
+    const responseBody = { success: true, data: entry };
+    await saveIdempotentResponse(req, req.user!.userId, responseBody);
+    res.status(201).json(responseBody);
     await broadcastQueueUpdate(req.params.id);
   } catch (error) {
     handleError(error, res, next);

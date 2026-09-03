@@ -99,3 +99,10 @@ model Notification {
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 }
+model IdempotencyKey {
+  id           String   @id @default(uuid())
+  key          String   @unique
+  userId       String
+  responseBody Json
+  createdAt    DateTime @default(now())
+}

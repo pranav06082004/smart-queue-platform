@@ -2,6 +2,7 @@ import { Router } from "express";
 import * as queueController from "../controllers/queue.controller";
 import { authenticate } from "../middleware/authMiddleware";
 import { requireRole } from "../middleware/roleMiddleware";
+import { checkIdempotency } from "../middleware/idempotency";
 
 const router = Router();
 
@@ -15,7 +16,7 @@ router.patch("/queues/:id/pause", authenticate, requireRole("STAFF"), queueContr
 router.patch("/queues/:id/resume", authenticate, requireRole("STAFF"), queueController.resume);
 router.patch("/queues/:id/close", authenticate, requireRole("STAFF"), queueController.close);
 
-router.post("/queues/:id/join", authenticate, requireRole("CUSTOMER"), queueController.join);
+router.post("/queues/:id/join", authenticate, requireRole("CUSTOMER"), checkIdempotency, queueController.join);
 router.post("/queues/:id/leave", authenticate, requireRole("CUSTOMER"), queueController.leave);
 router.get("/queues/:id/my-position", authenticate, requireRole("CUSTOMER"), queueController.myPosition);
 
@@ -24,7 +25,5 @@ router.post("/queues/:id/skip/:entryId", authenticate, requireRole("STAFF"), que
 router.post("/queues/:id/complete/:entryId", authenticate, requireRole("STAFF"), queueController.complete);
 
 router.get("/services/:id/queues", queueController.listByService);
-
-
 
 export default router;

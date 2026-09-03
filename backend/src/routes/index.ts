@@ -21,5 +21,6 @@ router.use(meRoutes);
 router.use(notificationRoutes);
 router.use(analyticsRoutes);
 router.use(recommendationRoutes);
+router.use(nlSearchRoutes);
 
 export default router;
