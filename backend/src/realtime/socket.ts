@@ -8,8 +8,8 @@ let io: SocketIOServer | null = null;
 
 export function initSocket(httpServer: HTTPServer) {
   io = new SocketIOServer(httpServer, {
-    cors: { origin: "*" },
-  });
+  cors: { origin: "http://localhost:5173" },
+});
 
   io.on("connection", (socket) => {
     console.log(`[socket] connected: ${socket.id}`);

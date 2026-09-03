@@ -3,10 +3,12 @@ import * as queueController from "../controllers/queue.controller";
 import { authenticate } from "../middleware/authMiddleware";
 import { requireRole } from "../middleware/roleMiddleware";
 import { checkIdempotency } from "../middleware/idempotency";
+import { strictLimiter } from "../middleware/rateLimiter";
 
 const router = Router();
 
 router.post("/queues", authenticate, requireRole("STAFF"), queueController.create);
+router.post("/queues/:id/join", strictLimiter, authenticate, requireRole("CUSTOMER"), checkIdempotency, queueController.join);
 
 router.get("/queues/:id/status", queueController.status);
 router.get("/queues/:id/history", authenticate, requireRole("STAFF"), queueController.history);
@@ -25,5 +27,6 @@ router.post("/queues/:id/skip/:entryId", authenticate, requireRole("STAFF"), que
 router.post("/queues/:id/complete/:entryId", authenticate, requireRole("STAFF"), queueController.complete);
 
 router.get("/services/:id/queues", queueController.listByService);
+
 
 export default router;
