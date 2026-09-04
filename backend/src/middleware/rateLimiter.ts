@@ -1,4 +1,6 @@
 import rateLimit from "express-rate-limit";
+import { RedisStore } from "rate-limit-redis";
+import { redis } from "../config/redis";
 
 function rateLimitHandler(req: any, res: any) {
   res.status(429).json({
@@ -7,20 +9,30 @@ function rateLimitHandler(req: any, res: any) {
   });
 }
 
-// General limiter: applied to all API routes.
+// Redis-backed store: every instance reads/writes the SAME counters,
+// so the limit is correctly enforced across however many instances are running —
+// not per-instance, which was Phase 16's flagged gap.
+function createRedisStore(prefix: string) {
+  return new RedisStore({
+    sendCommand: (...args: string[]) => (redis as any).call(...args),
+    prefix,
+  });
+}
+
 export const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300, // 300 requests per window per IP — generous for normal browsing/polling
+  windowMs: 15 * 60 * 1000,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
   handler: rateLimitHandler,
+  store: createRedisStore("rl:general:"),
 });
 
-// Strict limiter: applied ONLY to sensitive endpoints (login, register, join).
 export const strictLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10, // only 10 attempts per 15 minutes per IP
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   handler: rateLimitHandler,
+  store: createRedisStore("rl:strict:"),
 });

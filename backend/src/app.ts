@@ -17,6 +17,11 @@ export function createApp() {
     credentials: true,
   }));
 
+  app.use((req, res, next) => {
+  console.log(`[${process.env.PORT || 4000}] handling ${req.method} ${req.path}`);
+  next();
+  });
+
   app.use(express.json({ limit: "100kb" })); // reasonable cap — our actual payloads are small
 
   app.use("/api", generalLimiter, routes);
