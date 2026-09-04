@@ -9,6 +9,7 @@ import notificationRoutes from "./notification.routes";
 import analyticsRoutes from "./analytics.routes";
 import recommendationRoutes from "./recommendation.routes";
 import nlSearchRoutes from "./nlSearch.routes";
+import metricsRoutes from "./metrics.routes";
 
 const router = Router();
 
@@ -22,5 +23,5 @@ router.use(notificationRoutes);
 router.use(analyticsRoutes);
 router.use(recommendationRoutes);
 router.use(nlSearchRoutes);
-
+router.use(metricsRoutes);
 export default router;

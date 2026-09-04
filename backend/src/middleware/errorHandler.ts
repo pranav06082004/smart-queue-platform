@@ -1,19 +1,11 @@
 import { Request, Response, NextFunction } from "express";
+import { logger } from "../config/logger";
 
-// Centralized error handler — consistent error shape, no leaked internals.
-export function errorHandler(
-  err: unknown,
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  console.error(err);
+export function errorHandler(err: unknown, req: Request, res: Response, next: NextFunction) {
+  logger.error({ requestId: req.requestId, error: (err as Error).message, stack: (err as Error).stack }, "unhandled error");
 
   res.status(500).json({
     success: false,
-    error: {
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Something went wrong. Please try again.",
-    },
+    error: { code: "INTERNAL_SERVER_ERROR", message: "Something went wrong. Please try again." },
   });
 }

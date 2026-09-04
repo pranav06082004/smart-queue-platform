@@ -3,6 +3,7 @@ import { QueueError, getQueueWithOwnerOrThrow, assertOwnership } from "./queueOw
 import { invalidateQueueStatusCache } from "./queue.service";
 import { publishEvent } from "../messaging/producer";
 import { QUEUE_ENTRY_COMPLETED, QUEUE_ENTRY_SKIPPED, QUEUE_ENTRY_JOINED, QUEUE_ENTRY_CALLED,QUEUE_ENTRY_TURN_APPROACHING } from "../messaging/events";
+import { recordQueueJoin, recordQueueAbandon } from "../utils/metrics";
 
 export class QueueEntryError extends Error {
   constructor(public code: string, message: string) {
@@ -46,6 +47,7 @@ export async function joinQueue(queueId: string, userId: string) {
     await publishEvent(QUEUE_ENTRY_JOINED, {
       entryId: entry.id, queueId, userId: entry.userId, tokenNumber: entry.tokenNumber,
     });
+    recordQueueJoin(); 
 
     return entry;
   } catch (err: any) {
@@ -79,7 +81,7 @@ export async function leaveQueue(entryId: string, userId: string) {
   });
 
   await invalidateQueueStatusCache(entry.queueId);
-
+  recordQueueAbandon();
   return updated;
 }
 
