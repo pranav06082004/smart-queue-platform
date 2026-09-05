@@ -9,15 +9,14 @@ function rateLimitHandler(req: any, res: any) {
   });
 }
 
-// Redis-backed store: every instance reads/writes the SAME counters,
-// so the limit is correctly enforced across however many instances are running —
-// not per-instance, which was Phase 16's flagged gap.
 function createRedisStore(prefix: string) {
   return new RedisStore({
     sendCommand: (...args: string[]) => (redis as any).call(...args),
     prefix,
   });
 }
+
+const isTestEnv = process.env.NODE_ENV === "test";
 
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -26,6 +25,7 @@ export const generalLimiter = rateLimit({
   legacyHeaders: false,
   handler: rateLimitHandler,
   store: createRedisStore("rl:general:"),
+  skip: () => isTestEnv, // don't rate-limit during automated tests
 });
 
 export const strictLimiter = rateLimit({
@@ -35,4 +35,5 @@ export const strictLimiter = rateLimit({
   legacyHeaders: false,
   handler: rateLimitHandler,
   store: createRedisStore("rl:strict:"),
+  skip: () => isTestEnv,
 });

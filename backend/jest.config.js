@@ -3,5 +3,6 @@ module.exports = {
   testEnvironment: "node",
   testMatch: ["**/__tests__/**/*.test.ts"],
   testTimeout: 15000,
-  maxWorkers: 1, // run tests sequentially — many of ours share real DB state intentionally
+  maxWorkers: 1,
+  setupFilesAfterEach: ["<rootDir>/src/__tests__/teardown.ts"],
 };
