@@ -24,6 +24,12 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
 
   ai-service:
     build: ./ai-service
@@ -47,7 +53,7 @@ services:
       redis:
         condition: service_started
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
 
   worker:
     build: ./backend
@@ -61,7 +67,7 @@ services:
       postgres:
         condition: service_healthy
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
 
   frontend:
     build: ./frontend
