@@ -23,6 +23,7 @@ Control queue lifecycle: open / pause / resume / close
 Call next, skip, or complete customers
 Real-time queue statistics and historical analytics
 AI-powered demand forecasting by hour of day
+
 🏗️ Architecture
                               ┌─────────────┐
                               │   Client    │
@@ -62,6 +63,7 @@ Stateless application tier — JWT auth, Redis-backed rate limiting, verified wi
 Concurrency-safe — atomic token generation + a database-level partial unique index, verified with a real 8-way concurrent load test
 Fail-open on every optional dependency — Redis, RabbitMQ, and the AI service can each go down without breaking core functionality, verified by stopping each directly
 AI is bounded, never autonomous — every AI output (predictions, recommendations, LLM-parsed intent) is validated against real data before use; AI has no code path capable of mutating data directly
+
 🛠️ Tech Stack
 Layer	Technology
 Frontend	React, TypeScript, Vite, Tailwind CSS, React Router
@@ -76,6 +78,7 @@ Auth	JWT, bcrypt
 Observability	Pino (structured logging), custom metrics
 Testing	Jest, Supertest
 Infrastructure	Docker, Docker Compose, Nginx
+
 📁 Project Structure
 smart-queue-platform/
 ├── backend/                 # Express API + WebSocket server + background worker
@@ -110,6 +113,7 @@ smart-queue-platform/
 ├── docs/                        # phase-by-phase design documents
 ├── docker-compose.yml
 └── .env                          # JWT_SECRET for Docker Compose
+
 🚀 Getting Started
 Option A — Docker Compose (recommended, single command)
 
@@ -170,6 +174,7 @@ uvicorn main:app --reload --port 8000
 cd ../frontend
 npm install
 npm run dev              # http://localhost:5173
+
 🧪 Testing
 bash
 cd backend
@@ -181,11 +186,13 @@ For a standalone stress test against a running instance:
 
 bash
 node scripts/concurrency-test.js <queue-id>
+
 📊 Key Design Decisions
 Why a monolith, not microservices? Documented in docs/phase-17-microservice-analysis.md — the AI service and worker are extracted for real, evidenced reasons (different runtime, independent scaling). Everything else stays in one deployable unit until real traffic evidence justifies further extraction — including a concrete audit of exactly what would need to change if it were.
 Why RabbitMQ over Kafka? Simpler, sufficient for reliable background job distribution at this scale — no evidence of needing Kafka's high-throughput event-streaming model.
 Why JWT over server-side sessions? Enables genuinely stateless horizontal scaling — verified directly with two real backend instances.
 Why does AI never act directly? Every AI-touching endpoint (recommendations, natural-language search) only ever proposes data; all actual mutations go through the same validated, ownership-checked business logic as manual usage — verified directly, including under a deliberate prompt-injection attempt.
+
 📄 License
 
 This project was built as a personal learning exercise in full-stack development and system design.
