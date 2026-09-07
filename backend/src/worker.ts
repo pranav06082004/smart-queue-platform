@@ -121,7 +121,13 @@ async function startWorker() {
   });
 }
 
-startWorker().catch((err) => {
-  console.error("[worker] fatal startup error:", err);
-  process.exit(1);
-});
+export { startWorker };
+
+// Still allow running this file standalone (e.g. `npm run worker` locally) —
+// only self-invoke if this file is executed directly, not when imported.
+if (require.main === module) {
+  startWorker().catch((err) => {
+    console.error("[worker] fatal startup error:", err);
+    process.exit(1);
+  });
+}
