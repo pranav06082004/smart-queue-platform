@@ -738,22 +738,6 @@ Each phase introduces a real engineering problem and then adds the minimum archi
 
 ---
 
-# 📚 Documentation
-
-Detailed phase-by-phase architecture and design decisions are available in:
-
-```text
-docs/
-```
-
-Important design documents include:
-
-```text
-docs/phase-17-microservice-analysis.md
-```
-
----
-
 # 📄 License
 
 This project was built as a personal learning exercise in **full-stack development, distributed systems, AI integration, and system design**.
