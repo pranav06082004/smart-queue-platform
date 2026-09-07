@@ -1,198 +1,759 @@
-🎫 Smart Queue Platform
+# 🎫 Smart Queue Platform
 
 An AI-powered virtual queue management platform that lets customers join queues remotely, track their live position and estimated wait time, and get notified as their turn approaches — while staff manage queue flow, view analytics, and forecast demand in real time.
 
-Built incrementally across 22 phases as a full-stack system design learning project, evolving from a simple monolith into a horizontally-scalable, observable, containerized platform with real-time updates, asynchronous processing, and three distinct AI capabilities — every architectural decision driven by an actual, demonstrated problem rather than added speculatively.
+Built incrementally across **22 phases** as a full-stack system design learning project, evolving from a simple monolith into a horizontally scalable, observable, containerized platform with real-time updates, asynchronous processing, and three distinct AI capabilities.
 
-✨ Features
+> **Core principle:** Every architectural decision was driven by an actual, demonstrated problem rather than added speculatively.
 
-Customers
+---
 
-Register / login, browse organizations and services
-Join a queue and receive a token number
-View live position and AI-predicted wait time
-Real-time updates via WebSockets (turn called, position changes, queue status)
-In-app notifications (joined, turn approaching, your turn, queue paused/closed)
-Natural-language search ("I need a haircut, no more than 20 min wait")
-AI-ranked branch/queue recommendations
+## ✨ Features
 
-Staff
+### 👤 Customers
 
-Create and manage organizations, services, and queues
-Control queue lifecycle: open / pause / resume / close
-Call next, skip, or complete customers
-Real-time queue statistics and historical analytics
-AI-powered demand forecasting by hour of day
+* Register / login
+* Browse organizations and services
+* Join a queue and receive a token number
+* View live queue position
+* View AI-predicted waiting time
+* Receive real-time updates via WebSockets
 
-🏗️ Architecture
+  * Turn called
+  * Position changes
+  * Queue status changes
+* In-app notifications
+
+  * Queue joined
+  * Turn approaching
+  * Your turn
+  * Queue paused
+  * Queue closed
+* Natural-language search
+
+  * Example: `"I need a haircut, no more than 20 min wait"`
+* AI-ranked branch / queue recommendations
+
+### 👨‍💼 Staff
+
+* Create and manage organizations
+* Create and manage services
+* Create and manage queues
+* Control queue lifecycle
+
+  * Open
+  * Pause
+  * Resume
+  * Close
+* Call next customer
+* Skip customers
+* Complete customers
+* View real-time queue statistics
+* View historical analytics
+* AI-powered demand forecasting by hour of day
+
+---
+
+# 🏗️ Architecture
+
+```text
                               ┌─────────────┐
                               │   Client    │
-                              │  (React)    │
+                              │   React     │
                               └──────┬──────┘
                                      │
                               ┌──────▼──────┐
                               │    Nginx    │
                               │Load Balancer│
                               └──────┬──────┘
-                     ┌───────────────┼───────────────┐
+                                     │
+                     ┌───────────────┴───────────────┐
+                     │                               │
               ┌──────▼──────┐               ┌──────▼──────┐
               │  Backend    │               │  Backend    │
               │ Instance A  │◄──────────────┤ Instance B  │
-              │  (Express)  │   stateless   │  (Express)  │
+              │  Express    │   Stateless   │  Express    │
               └──────┬──────┘               └──────┬──────┘
                      │                              │
-       ┌─────────────┼──────────────┬───────────────┤
-       ▼             ▼              ▼                ▼
-┌─────────────┐ ┌─────────┐  ┌───────────┐   ┌──────────────┐
-│ PostgreSQL  │ │  Redis  │  │ RabbitMQ  │   │  AI Service  │
-│(source of   │ │(cache + │  │  (async   │   │(Python/      │
-│  truth)     │ │pub/sub +│  │  events)  │   │ FastAPI)     │
-│             │ │rate lim)│  │           │   │              │
-└─────────────┘ └─────────┘  └─────┬─────┘   └──────────────┘
+                     └──────────────┬───────────────┘
                                     │
-                              ┌─────▼─────┐
-                              │  Worker   │
-                              │ (Node.js, │
-                              │ separate  │
-                              │ process)  │
-                              └───────────┘
+             ┌──────────────────────┼──────────────────────┐
+             │                      │                      │
+             ▼                      ▼                      ▼
+      ┌─────────────┐        ┌─────────────┐       ┌─────────────┐
+      │ PostgreSQL  │        │    Redis    │       │  RabbitMQ   │
+      │             │        │             │       │             │
+      │ Source of   │        │ Cache       │       │ Async       │
+      │ Truth       │        │ Pub/Sub     │       │ Events      │
+      │             │        │ Rate Limit  │       │             │
+      └─────────────┘        └─────────────┘       └──────┬──────┘
+                                                           │
+                                                    ┌──────▼──────┐
+                                                    │   Worker    │
+                                                    │  Node.js    │
+                                                    │  Process    │
+                                                    └─────────────┘
 
-Key architectural properties (each proven with a real test, not just designed):
+                              ┌─────────────┐
+                              │ AI Service  │
+                              │ Python /    │
+                              │ FastAPI     │
+                              └─────────────┘
+```
 
-Stateless application tier — JWT auth, Redis-backed rate limiting, verified with two real backend instances behind a load balancer
-Concurrency-safe — atomic token generation + a database-level partial unique index, verified with a real 8-way concurrent load test
-Fail-open on every optional dependency — Redis, RabbitMQ, and the AI service can each go down without breaking core functionality, verified by stopping each directly
-AI is bounded, never autonomous — every AI output (predictions, recommendations, LLM-parsed intent) is validated against real data before use; AI has no code path capable of mutating data directly
+---
 
-🛠️ Tech Stack
-Layer	Technology
-Frontend	React, TypeScript, Vite, Tailwind CSS, React Router
-Backend	Node.js, Express, TypeScript, Prisma
-Database	PostgreSQL
-Cache / Pub-Sub / Rate Limiting	Redis
-Message Queue	RabbitMQ
-Real-time	Socket.IO
-AI Service	Python, FastAPI, scikit-learn, pandas
-LLM	Groq (OpenAI-compatible API)
-Auth	JWT, bcrypt
-Observability	Pino (structured logging), custom metrics
-Testing	Jest, Supertest
-Infrastructure	Docker, Docker Compose, Nginx
+## 🔑 Key Architectural Properties
 
-📁 Project Structure
+Each architectural property was **proven with a real test**, rather than simply designed on paper.
+
+### Stateless Application Tier
+
+* JWT-based authentication
+* Redis-backed rate limiting
+* Multiple backend instances behind Nginx
+* Verified using two real backend instances
+
+### Concurrency Safe
+
+* Atomic token generation
+* Database-level partial unique index
+* Verified using an **8-way concurrent load test**
+* Zero token collisions under concurrent queue joins
+
+### Fail-Open Optional Dependencies
+
+Redis, RabbitMQ, and the AI service can independently go down without breaking core queue functionality.
+
+Verified by directly stopping each dependency.
+
+### AI Safety Boundary
+
+AI is **bounded and never autonomous**.
+
+Every AI output is validated against real application data before being used.
+
+AI has no direct code path capable of mutating application data.
+
+```text
+User
+  │
+  ▼
+AI Service
+  │
+  │ Suggest / Predict
+  ▼
+Validation Layer
+  │
+  │ Verify against real data
+  ▼
+Business Logic
+  │
+  ▼
+Database
+```
+
+---
+
+# 🛠️ Tech Stack
+
+| Layer                               | Technology                                          |
+| ----------------------------------- | --------------------------------------------------- |
+| **Frontend**                        | React, TypeScript, Vite, Tailwind CSS, React Router |
+| **Backend**                         | Node.js, Express, TypeScript, Prisma                |
+| **Database**                        | PostgreSQL                                          |
+| **Cache / Pub-Sub / Rate Limiting** | Redis                                               |
+| **Message Queue**                   | RabbitMQ                                            |
+| **Real-Time Communication**         | Socket.IO                                           |
+| **AI Service**                      | Python, FastAPI, scikit-learn, pandas               |
+| **LLM**                             | Groq (OpenAI-compatible API)                        |
+| **Authentication**                  | JWT, bcrypt                                         |
+| **Observability**                   | Pino, Custom Metrics                                |
+| **Testing**                         | Jest, Supertest                                     |
+| **Infrastructure**                  | Docker, Docker Compose, Nginx                       |
+
+---
+
+# 📁 Project Structure
+
+```text
 smart-queue-platform/
-├── backend/                 # Express API + WebSocket server + background worker
+│
+├── backend/
 │   ├── src/
-│   │   ├── config/          # env, prisma, redis, rabbitmq clients
-│   │   ├── controllers/     # HTTP request handlers
-│   │   ├── services/        # business logic
-│   │   ├── routes/          # Express route definitions
-│   │   ├── middleware/      # auth, rate limiting, idempotency, logging
-│   │   ├── messaging/       # RabbitMQ producer + event definitions
-│   │   ├── realtime/        # Socket.IO + Redis Pub/Sub
-│   │   ├── utils/           # cache, metrics helpers
-│   │   ├── __tests__/       # Jest + Supertest integration tests
-│   │   ├── server.ts        # API entry point
-│   │   └── worker.ts        # background worker entry point (separate process)
-│   ├── prisma/               # schema + migrations
+│   │   ├── config/             # Environment, Prisma, Redis, RabbitMQ clients
+│   │   ├── controllers/        # HTTP request handlers
+│   │   ├── services/           # Business logic
+│   │   ├── routes/             # Express route definitions
+│   │   ├── middleware/         # Auth, rate limiting, idempotency, logging
+│   │   ├── messaging/          # RabbitMQ producer + event definitions
+│   │   ├── realtime/           # Socket.IO + Redis Pub/Sub
+│   │   ├── utils/              # Cache and metrics helpers
+│   │   ├── __tests__/          # Jest + Supertest integration tests
+│   │   ├── server.ts           # API entry point
+│   │   └── worker.ts           # Background worker entry point
+│   │
+│   ├── prisma/
+│   │   ├── schema.prisma
+│   │   └── migrations/
+│   │
 │   └── Dockerfile
-├── ai-service/               # Python FastAPI microservice
-│   ├── data/                 # synthetic dataset generation
-│   ├── training/              # model training scripts
-│   ├── models/                 # trained model artifacts (.pkl)
-│   ├── schemas/                 # Pydantic request/response models
-│   ├── services/                 # prediction logic
+│
+├── ai-service/
+│   ├── data/                   # Synthetic dataset generation
+│   ├── training/               # Model training scripts
+│   ├── models/                 # Trained model artifacts (.pkl)
+│   ├── schemas/                # Pydantic request/response models
+│   ├── services/               # Prediction logic
 │   ├── main.py
 │   └── Dockerfile
-├── frontend/                  # React SPA
+│
+├── frontend/
+│   ├── src/
 │   └── Dockerfile
+│
 ├── nginx/
-│   └── nginx.conf             # load balancer config
+│   └── nginx.conf              # Load balancer configuration
+│
 ├── scripts/
-│   └── concurrency-test.js     # standalone concurrent-load test script
-├── docs/                        # phase-by-phase design documents
+│   └── concurrency-test.js     # Concurrent load test
+│
+├── docs/
+│   └── phase-by-phase design documents
+│
 ├── docker-compose.yml
-└── .env                          # JWT_SECRET for Docker Compose
+├── .env
+└── README.md
+```
 
-🚀 Getting Started
-Option A — Docker Compose (recommended, single command)
+---
 
-Prerequisites: Docker Desktop
+# 🚀 Getting Started
 
-bash
+## Option A — Docker Compose
+
+**Recommended:** Start the complete platform with Docker Compose.
+
+### Prerequisites
+
+* Docker Desktop
+* Git
+
+### 1. Clone the Repository
+
+```bash
 git clone <your-repo-url>
 cd smart-queue-platform
+```
 
-# Set a real JWT secret
+### 2. Create a JWT Secret
+
+#### Linux / macOS
+
+```bash
 echo "JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")" > .env
+```
 
+#### Windows PowerShell
+
+```powershell
+"JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")" | Out-File -Encoding utf8 .env
+```
+
+### 3. Start All Services
+
+```bash
 docker compose up --build
+```
 
-Once all services are healthy:
+### 4. Service URLs
 
-Frontend: http://localhost:5173
-Backend API: http://localhost:4000/api/health
-AI Service: http://localhost:8000/health
-RabbitMQ dashboard: http://localhost:15672 (guest/guest)
+| Service            | URL                              |
+| ------------------ | -------------------------------- |
+| Frontend           | http://localhost:5173            |
+| Backend API        | http://localhost:4000/api/health |
+| AI Service         | http://localhost:8000/health     |
+| RabbitMQ Dashboard | http://localhost:15672           |
 
-Run database migrations (first time only):
+Default RabbitMQ credentials:
 
-bash
+```text
+Username: guest
+Password: guest
+```
+
+### 5. Run Database Migrations
+
+Run this the first time the project is started:
+
+```bash
 docker compose exec backend npx prisma migrate deploy
-Option B — Manual local setup
+```
 
-Prerequisites: Node.js 18+, Python 3.12+, Docker (for Postgres/Redis/RabbitMQ)
+---
 
-bash
-# Infrastructure
-docker run --name sq-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=smart_queue -p 5432:5432 -d postgres:16
-docker run --name sq-redis -p 6379:6379 -d redis:7
-docker run --name sq-rabbitmq -p 5672:5672 -p 15672:15672 -d rabbitmq:3-management
+# 💻 Option B — Manual Local Setup
 
-# Backend
+### Prerequisites
+
+* Node.js 18+
+* Python 3.12+
+* Docker
+* npm
+
+Docker is used for PostgreSQL, Redis, and RabbitMQ.
+
+---
+
+## 1. Start Infrastructure
+
+### PostgreSQL
+
+```bash
+docker run \
+  --name sq-postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=smart_queue \
+  -p 5432:5432 \
+  -d postgres:16
+```
+
+### Redis
+
+```bash
+docker run \
+  --name sq-redis \
+  -p 6379:6379 \
+  -d redis:7
+```
+
+### RabbitMQ
+
+```bash
+docker run \
+  --name sq-rabbitmq \
+  -p 5672:5672 \
+  -p 15672:15672 \
+  -d rabbitmq:3-management
+```
+
+---
+
+## 2. Start Backend
+
+```bash
 cd backend
+
 npm install
-cp .env.example .env   # fill in DATABASE_URL, JWT_SECRET, etc.
+
+cp .env.example .env
+```
+
+Configure the required environment variables such as:
+
+```env
+DATABASE_URL=
+JWT_SECRET=
+REDIS_URL=
+RABBITMQ_URL=
+AI_SERVICE_URL=
+```
+
+Run migrations:
+
+```bash
 npx prisma migrate dev
-npm run dev             # API server, port 4000
+```
 
-# Worker (separate terminal)
+Start the API server:
+
+```bash
+npm run dev
+```
+
+Backend runs on:
+
+```text
+http://localhost:4000
+```
+
+---
+
+## 3. Start Background Worker
+
+Open another terminal:
+
+```bash
+cd backend
 npm run worker
+```
 
-# AI Service (separate terminal)
-cd ../ai-service
+The worker runs as a separate Node.js process and handles asynchronous RabbitMQ events.
+
+---
+
+## 4. Start AI Service
+
+Open another terminal:
+
+```bash
+cd ai-service
+```
+
+Create a virtual environment:
+
+```bash
 python -m venv venv
-.\venv\Scripts\Activate.ps1   # or source venv/bin/activate on Mac/Linux
+```
+
+### Windows PowerShell
+
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+### macOS / Linux
+
+```bash
+source venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
 pip install -r requirements.txt
+```
+
+Generate datasets:
+
+```bash
 python data/generate_data.py
-python training/train_model.py
 python data/generate_demand_data.py
+```
+
+Train the models:
+
+```bash
+python training/train_model.py
 python training/train_demand_model.py
+```
+
+Start FastAPI:
+
+```bash
 uvicorn main:app --reload --port 8000
+```
 
-# Frontend (separate terminal)
-cd ../frontend
+AI service runs on:
+
+```text
+http://localhost:8000
+```
+
+---
+
+## 5. Start Frontend
+
+Open another terminal:
+
+```bash
+cd frontend
+
 npm install
-npm run dev              # http://localhost:5173
 
-🧪 Testing
-bash
+npm run dev
+```
+
+Frontend runs on:
+
+```text
+http://localhost:5173
+```
+
+---
+
+# 🧪 Testing
+
+Run the backend test suite:
+
+```bash
 cd backend
 npm test
+```
 
-Includes integration tests for authentication boundaries, real concurrent queue joins (verifying zero token collisions), queue state transitions, and idempotency-key behavior.
+The test suite includes integration tests for:
 
-For a standalone stress test against a running instance:
+* Authentication boundaries
+* Concurrent queue joins
+* Token collision prevention
+* Queue state transitions
+* Idempotency-key behavior
 
-bash
+---
+
+## ⚡ Concurrent Load Test
+
+A standalone concurrency test is also provided.
+
+Start the platform first, then run:
+
+```bash
 node scripts/concurrency-test.js <queue-id>
+```
 
-📊 Key Design Decisions
-Why a monolith, not microservices? Documented in docs/phase-17-microservice-analysis.md — the AI service and worker are extracted for real, evidenced reasons (different runtime, independent scaling). Everything else stays in one deployable unit until real traffic evidence justifies further extraction — including a concrete audit of exactly what would need to change if it were.
-Why RabbitMQ over Kafka? Simpler, sufficient for reliable background job distribution at this scale — no evidence of needing Kafka's high-throughput event-streaming model.
-Why JWT over server-side sessions? Enables genuinely stateless horizontal scaling — verified directly with two real backend instances.
-Why does AI never act directly? Every AI-touching endpoint (recommendations, natural-language search) only ever proposes data; all actual mutations go through the same validated, ownership-checked business logic as manual usage — verified directly, including under a deliberate prompt-injection attempt.
+The test verifies that concurrent users joining the same queue do not receive duplicate token numbers.
 
-📄 License
+---
 
-This project was built as a personal learning exercise in full-stack development and system design.
+# 📊 Key Design Decisions
+
+## Why a Monolith Instead of Microservices?
+
+The system intentionally started as a modular monolith.
+
+The AI service and background worker were extracted only when there were concrete architectural reasons:
+
+* AI service requires a different runtime
+* AI workloads may need independent scaling
+* Background jobs should not block API requests
+* Worker processes can scale independently
+
+Everything else remains inside a single deployable backend until real traffic or operational evidence justifies further extraction.
+
+The analysis is documented in:
+
+```text
+docs/phase-17-microservice-analysis.md
+```
+
+---
+
+## Why RabbitMQ Instead of Kafka?
+
+RabbitMQ was selected because the system primarily needs:
+
+* Reliable asynchronous job processing
+* Work queues
+* Event delivery
+* Consumer acknowledgement
+* Background task distribution
+
+Kafka's high-throughput event-streaming model would add operational complexity without solving a demonstrated requirement at the current scale.
+
+---
+
+## Why JWT Instead of Server-Side Sessions?
+
+JWT authentication allows the backend instances to remain stateless.
+
+```text
+                ┌─────────────┐
+                │    Nginx    │
+                └──────┬──────┘
+                       │
+              ┌────────┴────────┐
+              │                 │
+        ┌─────▼─────┐     ┌─────▼─────┐
+        │ Backend A │     │ Backend B │
+        └───────────┘     └───────────┘
+              │                 │
+              └────────┬────────┘
+                       │
+                 PostgreSQL
+```
+
+Authentication state does not need to be stored inside a particular backend instance.
+
+This was verified using two real backend instances behind the load balancer.
+
+---
+
+## Why Does AI Never Act Directly?
+
+AI is treated as a **decision-support component**, not an autonomous actor.
+
+```text
+                    User Request
+                         │
+                         ▼
+                  ┌─────────────┐
+                  │ AI Service  │
+                  └──────┬──────┘
+                         │
+                    Prediction /
+                    Recommendation
+                         │
+                         ▼
+                  ┌─────────────┐
+                  │ Validation  │
+                  └──────┬──────┘
+                         │
+                  Verified Data
+                         │
+                         ▼
+                  ┌─────────────┐
+                  │  Business   │
+                  │    Logic    │
+                  └──────┬──────┘
+                         │
+                         ▼
+                     Database
+```
+
+Every AI-powered operation is validated against real application data before being used.
+
+AI cannot directly mutate application state.
+
+This includes protection against deliberately malformed or prompt-injection-style inputs.
+
+---
+
+# 🤖 AI Capabilities
+
+The platform contains **three distinct AI capabilities**.
+
+### 1. Waiting-Time Prediction
+
+Predicts estimated waiting time based on queue and service information.
+
+### 2. Demand Forecasting
+
+Forecasts queue demand by hour of day to help staff prepare for expected traffic.
+
+### 3. Natural-Language Search & Recommendations
+
+Users can describe what they need naturally.
+
+Example:
+
+```text
+"I need a haircut and don't want to wait more than 20 minutes."
+```
+
+The system extracts the user's intent and ranks relevant branches / queues.
+
+AI results are always bounded by real application data.
+
+---
+
+# 🔐 Reliability & Resilience
+
+Optional dependencies are designed to **fail open** wherever possible.
+
+| Dependency       | Failure Behavior                                     |
+| ---------------- | ---------------------------------------------------- |
+| Redis            | Core queue operations continue                       |
+| RabbitMQ         | Core synchronous operations continue                 |
+| AI Service       | Queue functionality continues without AI predictions |
+| Database         | Required source of truth                             |
+| Backend Instance | Traffic can be served by another instance            |
+
+This ensures that optional infrastructure improves the system without becoming a single point of failure for core queue operations.
+
+---
+
+# 📈 System Design Concepts Demonstrated
+
+This project was intentionally built as a **system design learning project**, not simply as a CRUD application.
+
+Key concepts demonstrated include:
+
+* Modular monolith architecture
+* Horizontal scaling
+* Stateless services
+* Load balancing
+* Database constraints
+* Concurrency control
+* Atomic operations
+* Redis caching
+* Redis Pub/Sub
+* Rate limiting
+* Message queues
+* Event-driven architecture
+* Asynchronous processing
+* WebSockets
+* Idempotency
+* Graceful degradation
+* Fault isolation
+* AI service isolation
+* API design
+* Authentication and authorization
+* Role-Based Access Control
+* Structured logging
+* Metrics and observability
+* Containerization
+* Docker Compose
+* Background workers
+* Microservice trade-offs
+
+---
+
+# 🧭 Development Approach
+
+The platform was developed incrementally across **22 phases**.
+
+The architecture evolved based on demonstrated requirements:
+
+```text
+Simple Monolith
+      │
+      ▼
+Authentication
+      │
+      ▼
+Queue Management
+      │
+      ▼
+Concurrency Safety
+      │
+      ▼
+Real-Time Updates
+      │
+      ▼
+Redis
+      │
+      ▼
+Asynchronous Processing
+      │
+      ▼
+Background Worker
+      │
+      ▼
+AI Service
+      │
+      ▼
+Observability
+      │
+      ▼
+Horizontal Scaling
+      │
+      ▼
+Docker + Nginx
+      │
+      ▼
+Production-Oriented Architecture
+```
+
+Each phase introduces a real engineering problem and then adds the minimum architectural complexity required to solve it.
+
+---
+
+# 📚 Documentation
+
+Detailed phase-by-phase architecture and design decisions are available in:
+
+```text
+docs/
+```
+
+Important design documents include:
+
+```text
+docs/phase-17-microservice-analysis.md
+```
+
+---
+
+# 📄 License
+
+This project was built as a personal learning exercise in **full-stack development, distributed systems, AI integration, and system design**.
