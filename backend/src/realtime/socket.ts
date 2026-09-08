@@ -4,12 +4,14 @@ import { publishQueueEvent, registerLocalDeliverer, startQueueEventSubscriber } 
 import { redisSubscriber } from "../config/redis";
 import { USER_NOTIFICATION_CHANNEL } from "./notifyUser";
 
+const ALLOWED_ORIGINS = ["https://smart-queue-platform-lyart.vercel.app", "http://localhost:5173"];
+
 let io: SocketIOServer | null = null;
 
 export function initSocket(httpServer: HTTPServer) {
   io = new SocketIOServer(httpServer, {
-  cors: { origin: "http://localhost:5173" },
-});
+    cors: { origin: ALLOWED_ORIGINS },
+  });
 
   io.on("connection", (socket) => {
     console.log(`[socket] connected: ${socket.id}`);
@@ -22,8 +24,6 @@ export function initSocket(httpServer: HTTPServer) {
       socket.leave(`queue:${queueId}`);
     });
 
-    // New: users join their own personal room to receive notifications
-    // pushed from anywhere — including the worker process.
     socket.on("join-user-room", (userId: string) => {
       socket.join(`user:${userId}`);
     });
@@ -39,8 +39,6 @@ export function initSocket(httpServer: HTTPServer) {
 
   startQueueEventSubscriber();
 
-  // Separate subscription: listens for notifications pushed by the WORKER process,
-  // delivers them to the correct user's personal room on THIS instance.
   redisSubscriber.subscribe(USER_NOTIFICATION_CHANNEL, (err) => {
     if (err) {
       console.warn("[socket] failed to subscribe to notification channel:", err.message);

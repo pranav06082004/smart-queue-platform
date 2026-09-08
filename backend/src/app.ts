@@ -6,9 +6,8 @@ import { errorHandler } from "./middleware/errorHandler";
 import { generalLimiter } from "./middleware/rateLimiter";
 import { requestIdMiddleware } from "./middleware/requestId";
 import { requestLogger } from "./middleware/requestLogger";
-import metricsRoutes from "./routes/metrics.routes";
 
-const ALLOWED_ORIGINS = ["http://localhost:5173"]; // our actual frontend, explicit not wildcard
+const ALLOWED_ORIGINS = ["https://smart-queue-platform-lyart.vercel.app", "http://localhost:5173"];
 
 export function createApp() {
   const app = express();
@@ -20,15 +19,11 @@ export function createApp() {
     credentials: true,
   }));
 
-  app.use((req, res, next) => {
-  console.log(`[${process.env.PORT || 4000}] handling ${req.method} ${req.path}`);
-  next();
-  });
-
-  app.use(express.json({ limit: "100kb" })); // reasonable cap — our actual payloads are small
-
   app.use(requestIdMiddleware);
   app.use(requestLogger);
+
+  app.use(express.json({ limit: "100kb" }));
+
   app.use("/api", generalLimiter, routes);
 
   app.use(errorHandler);
