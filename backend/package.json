@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "worker": "ts-node-dev --respawn --transpile-only src/worker.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "dev:instance-b": "cross-env PORT=4001 ts-node-dev --respawn --transpile-only src/server.ts",
-    "test": "cross-env NODE_ENV=test dotenv -e .env.test -- jest --runInBand"
-  },
+  "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+  "worker": "ts-node-dev --respawn --transpile-only src/worker.ts",
+  "build": "tsc",
+  "start": "node dist/server.js",
+  "dev:instance-b": "cross-env PORT=4001 ts-node-dev --respawn --transpile-only src/server.ts",
+  "test": "cross-env NODE_ENV=test dotenv -e .env.test -- jest --runInBand"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
