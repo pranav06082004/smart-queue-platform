@@ -15,7 +15,7 @@ import StaffQueueControlPage from "./pages/StaffQueueControlPage";
 import StaffAnalyticsPage from "./pages/StaffAnalyticsPage";
 import RecommendationSearchPage from "./pages/RecommendationSearchPage";
 import NaturalLanguageSearchPage from "./pages/NaturalLanguageSearchPage";
-import Footer from "./components/footer";
+import Footer from "./components/Footer";
 
 function App() {
   return (
