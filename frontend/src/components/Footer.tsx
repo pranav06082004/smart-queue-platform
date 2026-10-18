@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
+import Logo from "./Logo";
 
 export default function Footer() {
   return (
     <footer className="mt-24 border-t border-slate-100 bg-lavender/40">
       <div className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-4 gap-10">
         <div className="md:col-span-2">
-          <p className="font-display font-bold text-lg text-indigo mb-2">Smart Queue</p>
+          <div className="mb-3"><Logo size={28} /></div>
           <p className="text-sm text-ink/60 max-w-sm">
             Skip the physical line. Join remotely, track your position live, and show up right when it's your turn.
           </p>

@@ -1,6 +1,7 @@
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
+import Logo from "./Logo";
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   `transition-colors hover:text-indigo ${isActive ? "text-indigo font-semibold" : ""}`;
@@ -11,12 +12,8 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 font-display font-bold text-lg text-indigo">
-          <span className="relative inline-flex w-2.5 h-2.5">
-            <span className="live-pulse absolute inset-0" />
-            <span className="relative w-2.5 h-2.5 rounded-full bg-teal" />
-          </span>
-          Smart Queue
+        <Link to="/" aria-label="Smart Queue home">
+          <Logo />
         </Link>
 
         <div className="flex items-center gap-6 text-sm font-medium text-ink/70">
