@@ -1,6 +1,9 @@
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
+
+const linkClass = ({ isActive }: { isActive: boolean }) =>
+  `transition-colors hover:text-indigo ${isActive ? "text-indigo font-semibold" : ""}`;
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -17,13 +20,14 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-6 text-sm font-medium text-ink/70">
-          <Link to="/organizations" className="hover:text-indigo transition-colors">Organizations</Link>
-          <Link to="/recommendations" className="hover:text-indigo transition-colors">Find Best Queue</Link>
-          <Link to="/ask" className="hover:text-indigo transition-colors">Ask AI</Link>
+          <NavLink to="/" end className={linkClass}>Home</NavLink>
+          <NavLink to="/organizations" className={linkClass}>Organizations</NavLink>
+          <NavLink to="/recommendations" className={linkClass}>Find Best Queue</NavLink>
+          <NavLink to="/ask" className={linkClass}>Ask AI</NavLink>
 
           {!user && (
             <>
-              <Link to="/login" className="hover:text-indigo transition-colors">Login</Link>
+              <NavLink to="/login" className={linkClass}>Login</NavLink>
               <Link
                 to="/register"
                 className="gradient-brand text-white px-4 py-2 rounded-full font-semibold hover:opacity-90 transition-opacity"
@@ -34,10 +38,10 @@ export default function Navbar() {
           )}
 
           {user?.role === "CUSTOMER" && (
-            <Link to="/dashboard" className="hover:text-indigo transition-colors">My Dashboard</Link>
+            <NavLink to="/dashboard" className={linkClass}>My Dashboard</NavLink>
           )}
           {user?.role === "STAFF" && (
-            <Link to="/staff/dashboard" className="hover:text-indigo transition-colors">Staff Dashboard</Link>
+            <NavLink to="/staff/dashboard" className={linkClass}>Staff Dashboard</NavLink>
           )}
 
           {user && (
